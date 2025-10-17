@@ -69,7 +69,7 @@
         </a>
 
         <!-- Placeholder for future modules -->
-        <a href="#" class="disabled text-secondary">Patron Management (Coming Soon)</a>
+        <a href="{% url 'patron_list' %}" class="{% if 'patron' in request.path %}active{% endif %}">Patron Management</a>
         <a href="#" class="disabled text-secondary">Bibliographic & Items (Coming Soon)</a>
         <a href="#" class="disabled text-secondary">Circulation / Loans (Coming Soon)</a>
         <a href="#" class="disabled text-secondary">Fines & Fees (Coming Soon)</a>

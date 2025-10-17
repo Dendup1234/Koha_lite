@@ -23,4 +23,13 @@ urlpatterns = [
     path("patron-categories/<str:code>/edit/", views.PatronCategoryUpdate.as_view(), name="patroncat_update"),
     path("patron-categories/<str:code>/delete/", views.PatronCategoryDelete.as_view(), name="patroncat_delete"),
 
+    #Patron Management
+    # Patrons
+    path("patrons/", views.PatronList.as_view(), name="patron_list"),
+    path("patrons/new/", views.PatronCreate.as_view(), name="patron_create"),
+    path("patrons/<int:pk>/edit/", views.PatronUpdate.as_view(), name="patron_update"),
+    path("patrons/<int:pk>/delete/", views.PatronDelete.as_view(), name="patron_delete"),
+    path("patrons/import/", views.PatronBulkImport.as_view(), name="patron_import"),
+    path("patrons/template.csv", views.patron_csv_template, name="patron_csv_template"),
+
 ]
