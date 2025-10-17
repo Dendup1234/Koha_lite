@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Items{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Items</h2>
+  <div class="btn-group">
+    <a class="btn btn-outline-dark" href="{% url 'item_csv_template' %}">Download CSV Template</a>
+    <a class="btn btn-outline-secondary" href="{% url 'item_import' %}">Bulk Import</a>
+    <a class="btn btn-primary" href="{% url 'item_create' %}">+ New Item</a>
+  </div>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-sm-6">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Search accession/barcode/title/item type/branch">
+  </div>
+  <div class="col-auto"><button class="btn btn-primary">Search</button></div>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-light">
+    <tr><th>Accession</th><th>Barcode</th><th>Title</th><th>Type</th><th>Branch</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+  
+    <tr>
+      <td><a href="{% url 'item_detail' r.pk %}" class="text-decoration-none">
+    {{ r.accession_number }}
+  </a></td>
+      <td>{{ r.barcode|default:"—" }}</td>
+      <td>{{ r.biblio.title }}</td>
+      <td>{{ r.item_type.code }}</td>
+      <td>{{ r.branch.code }}</td>
+      <td>{{ r.get_status_display }}</td>
+      <td class="text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'item_update' r.pk %}">Edit</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'item_delete' r.pk %}">Delete</a>
+      </td>
+    </tr>
+  
+    
+  {% empty %}
+    <tr><td colspan="7" class="text-muted">No items found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Import Items{% endblock %}
+{% block content %}
+<h2>Bulk Import — Items</h2>
+<p class="text-muted">
+  Headers: <code>accession_number,barcode,isbn_or_biblio_id,item_type_code,branch_code,status</code>
+</p>
+<p class="mb-2">
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'item_csv_template' %}">Download CSV Template</a>
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'item_list' %}">Back to list</a>
+</p>
+
+<form method="post" enctype="multipart/form-data" class="card card-body mb-3" style="max-width:640px">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary" type="submit">Upload & Import</button>
+</form>
+
+{% if results %}
+  <h5>Results</h5>
+  <ul>
+    <li>Created: <strong>{{ results.created }}</strong></li>
+    <li>Updated: <strong>{{ results.updated }}</strong></li>
+    <li>Skipped: <strong>{{ results.skipped }}</strong></li>
+  </ul>
+  {% if results.errors %}
+    <div class="alert alert-warning"><ul>{% for e in results.errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+  {% endif %}
+{% endif %}
+{% endblock %}

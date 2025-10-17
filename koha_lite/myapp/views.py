@@ -4,7 +4,7 @@ from io import TextIOWrapper
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView,FormView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView,FormView,DetailView
 from .models import *
 from .forms import *
 from django.db import models, transaction
@@ -284,3 +284,265 @@ def patron_csv_template(_request):
     for r in rows:
         w.writerow(r)
     return resp
+
+# Cateloguing Module
+
+# --- small mixin from before (safe headings) ---
+class ModelTitleContextMixin:
+    action_label = None
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        m = self.model._meta
+        ctx["model_verbose"] = m.verbose_name.title()
+        ctx["model_verbose_plural"] = m.verbose_name_plural.title()
+        ctx["action_label"] = self.action_label or ("Create" if isinstance(self, CreateView) else "Edit")
+        return ctx
+
+# ---------------- Biblios ----------------
+
+class BiblioList(ListView):
+    model = Biblio
+    template_name = "library/biblio_list.html"
+    context_object_name = "rows"
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(
+                models.Q(title__icontains=q) |
+                models.Q(author__icontains=q) |
+                models.Q(isbn__icontains=q) |
+                models.Q(publisher__icontains=q)
+            )
+        return qs
+
+class BiblioCreate(ModelTitleContextMixin, CreateView):
+    model = Biblio
+    form_class = BiblioForm
+    template_name = "library/form.html"
+    success_url = reverse_lazy("biblio_list")
+    action_label = "Create"
+
+class BiblioUpdate(ModelTitleContextMixin, UpdateView):
+    model = Biblio
+    form_class = BiblioForm
+    template_name = "library/form.html"
+    success_url = reverse_lazy("biblio_list")
+    pk_url_kwarg = "pk"
+    action_label = "Edit"
+
+class BiblioDelete(DeleteView):
+    model = Biblio
+    template_name = "library/confirm_delete.html"
+    success_url = reverse_lazy("biblio_list")
+    pk_url_kwarg = "pk"
+
+# ---- Biblios bulk import ----
+
+class BiblioImportFormView(FormView):
+    template_name = "library/biblio_import.html"
+    success_url = reverse_lazy("biblio_list")
+
+    class DummyForm(forms.Form):
+        file = forms.FileField(help_text="CSV: title,author,isbn,publisher,publication_year,attributes_json")
+
+    form_class = DummyForm
+
+    def form_valid(self, form):
+        wrapped = TextIOWrapper(form.cleaned_data["file"], encoding="utf-8", newline="")
+        reader = csv.DictReader(wrapped)
+        required = {"title","author","isbn","publisher","publication_year","attributes_json"}
+        missing = required - set([h.strip() for h in (reader.fieldnames or [])])
+
+        results = {"created":0, "updated":0, "skipped":0, "errors":[]}
+        if missing:
+            results["errors"].append(f"Missing columns: {', '.join(sorted(missing))}")
+            return render(self.request, self.template_name, {"form": self.form_class(), "results": results})
+
+        with transaction.atomic():
+            for line, row in enumerate(reader, start=2):
+                try:
+                    title = (row.get("title") or "").strip()
+                    if not title:
+                        raise ValueError("title is required")
+
+                    isbn = (row.get("isbn") or "").strip() or None
+                    attrs_raw = (row.get("attributes_json") or "").strip()
+                    attrs = {}
+                    if attrs_raw:
+                        import json
+                        attrs = json.loads(attrs_raw)
+
+                    payload = {
+                        "title": title,
+                        "author": (row.get("author") or "").strip(),
+                        "isbn": isbn,
+                        "publisher": (row.get("publisher") or "").strip(),
+                        "publication_year": int(row.get("publication_year") or 0) or None,
+                        "attributes": attrs,
+                    }
+
+                    if isbn and Biblio.objects.filter(isbn=isbn).exists():
+                        Biblio.objects.filter(isbn=isbn).update(**payload)
+                        results["updated"] += 1
+                    else:
+                        Biblio.objects.create(**payload)
+                        results["created"] += 1
+
+                except Exception as e:
+                    results["skipped"] += 1
+                    results["errors"].append(f"Row {line}: {e}")
+
+        return render(self.request, self.template_name, {"form": self.form_class(), "results": results})
+
+def biblio_csv_template(_request):
+    resp = HttpResponse(content_type="text/csv")
+    resp["Content-Disposition"] = 'attachment; filename="biblios_template.csv"'
+    w = csv.writer(resp)
+    w.writerow(["title","author","isbn","publisher","publication_year","attributes_json"])
+    w.writerow(["Fundamentals of OS","Silberschatz","9780470128725","Wiley","2010",'{"pages": 950, "language": "en"}'])
+    w.writerow(["Modern Bhutan","-","","RUB Press","2022",'{"language": "dz"}'])
+    return resp
+
+# ---------------- Items ----------------
+
+class ItemList(ListView):
+    model = Item
+    template_name = "library/item_list.html"
+    context_object_name = "rows"
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related("biblio","item_type","branch")
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(
+                models.Q(accession_number__icontains=q) |
+                models.Q(barcode__icontains=q) |
+                models.Q(biblio__title__icontains=q) |
+                models.Q(item_type__code__icontains=q) |
+                models.Q(branch__code__icontains=q)
+            )
+        return qs
+
+class ItemCreate(ModelTitleContextMixin, CreateView):
+    model = Item
+    form_class = ItemForm
+    template_name = "library/form.html"
+    success_url = reverse_lazy("item_list")
+    action_label = "Create"
+
+class ItemUpdate(ModelTitleContextMixin, UpdateView):
+    model = Item
+    form_class = ItemForm
+    template_name = "library/form.html"
+    success_url = reverse_lazy("item_list")
+    pk_url_kwarg = "pk"
+    action_label = "Edit"
+
+class ItemDelete(DeleteView):
+    model = Item
+    template_name = "library/confirm_delete.html"
+    success_url = reverse_lazy("item_list")
+    pk_url_kwarg = "pk"
+
+# ---- Items bulk import ----
+
+class ItemImportFormView(FormView):
+    template_name = "library/item_import.html"
+    success_url = reverse_lazy("item_list")
+
+    class DummyForm(forms.Form):
+        file = forms.FileField(help_text="CSV: accession_number,barcode,isbn_or_biblio_id,item_type_code,branch_code,status")
+        isbn_priority = forms.BooleanField(required=False, initial=True,
+                 help_text="If true, try mapping by ISBN to biblio; else use biblio_id column.")
+    form_class = DummyForm
+
+    def form_valid(self, form):
+        wrapped = TextIOWrapper(form.cleaned_data["file"], encoding="utf-8", newline="")
+        reader = csv.DictReader(wrapped)
+
+        required = {"accession_number","barcode","isbn_or_biblio_id","item_type_code","branch_code","status"}
+        missing = required - set([h.strip() for h in (reader.fieldnames or [])])
+        results = {"created":0, "updated":0, "skipped":0, "errors":[]}
+
+        if missing:
+            results["errors"].append(f"Missing columns: {', '.join(sorted(missing))}")
+            return render(self.request, self.template_name, {"form": self.form_class(), "results": results})
+
+        use_isbn = form.cleaned_data.get("isbn_priority", True)
+
+        with transaction.atomic():
+            for line, row in enumerate(reader, start=2):
+                try:
+                    acc = (row.get("accession_number") or "").strip()
+                    if not acc:
+                        raise ValueError("accession_number is required")
+
+                    # resolve biblio
+                    bib_ref = (row.get("isbn_or_biblio_id") or "").strip()
+                    if use_isbn and bib_ref:
+                        bib = Biblio.objects.filter(isbn=bib_ref or None).first()
+                        if not bib:
+                            raise ValueError(f"No Biblio with ISBN '{bib_ref}'")
+                    else:
+                        if not bib_ref:
+                            raise ValueError("isbn_or_biblio_id is required")
+                        bib = Biblio.objects.filter(pk=int(bib_ref)).first()
+                        if not bib:
+                            raise ValueError(f"No Biblio id={bib_ref}")
+
+                    # resolve item_type & branch
+                    it_code = (row.get("item_type_code") or "").strip()
+                    br_code = (row.get("branch_code") or "").strip()
+                    try:
+                        it = ItemType.objects.get(code=it_code)
+                    except ItemType.DoesNotExist:
+                        raise ValueError(f"item_type_code '{it_code}' not found")
+                    try:
+                        br = Branch.objects.get(code=br_code)
+                    except Branch.DoesNotExist:
+                        raise ValueError(f"branch_code '{br_code}' not found")
+
+                    status = (row.get("status") or "AVAILABLE").strip().upper()
+                    if status not in dict(Item.Status.choices):
+                        raise ValueError(f"invalid status '{status}'")
+
+                    payload = dict(biblio=bib, barcode=(row.get("barcode") or "").strip(),
+                                   item_type=it, branch=br, status=status)
+
+                    if Item.objects.filter(accession_number=acc).exists():
+                        Item.objects.filter(accession_number=acc).update(**payload)
+                        results["updated"] += 1
+                    else:
+                        Item.objects.create(accession_number=acc, **payload)
+                        results["created"] += 1
+
+                except Exception as e:
+                    results["skipped"] += 1
+                    results["errors"].append(f"Row {line}: {e}")
+
+        return render(self.request, self.template_name, {"form": self.form_class(), "results": results})
+
+def item_csv_template(_request):
+    resp = HttpResponse(content_type="text/csv")
+    resp["Content-Disposition"] = 'attachment; filename="items_template.csv"'
+    w = csv.writer(resp)
+    w.writerow(["accession_number","barcode","isbn_or_biblio_id","item_type_code","branch_code","status"])
+    w.writerow(["ACC-0001","BC-001","9780470128725","BOOK","CST","AVAILABLE"])
+    w.writerow(["ACC-0002","BC-002","9780470128725","BOOK","CST","AVAILABLE"])
+    w.writerow(["ACC-0100","BC-0100","2","DVD","MAIN","LOST"])  # example by biblio_id
+    return resp
+
+class ItemDetail(DetailView):
+    model = Item
+    template_name = "library/item_detail.html"
+    pk_url_kwarg = "pk"
+
+    # JOIN related tables for one efficient query
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("biblio", "item_type", "branch")
+        )

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Biblios{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Biblios</h2>
+  <div class="btn-group">
+    <a class="btn btn-outline-dark" href="{% url 'biblio_csv_template' %}">Download CSV Template</a>
+    <a class="btn btn-outline-secondary" href="{% url 'biblio_import' %}">Bulk Import</a>
+    <a class="btn btn-primary" href="{% url 'biblio_create' %}">+ New Biblio</a>
+  </div>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-sm-6">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Search title, author, isbn, publisher">
+  </div>
+  <div class="col-auto"><button class="btn btn-primary">Search</button></div>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-light">
+    <tr><th>Title</th><th>Author</th><th>ISBN</th><th>Publisher</th><th>Year</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.title }}</td>
+      <td>{{ r.author|default:"—" }}</td>
+      <td>{{ r.isbn|default:"—" }}</td>
+      <td>{{ r.publisher|default:"—" }}</td>
+      <td>{{ r.publication_year|default:"—" }}</td>
+      <td class="text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'biblio_update' r.pk %}">Edit</a>
+        <a class="btn btn-sm btn-outline-danger" href="{% url 'biblio_delete' r.pk %}">Delete</a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="text-muted">No biblios found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

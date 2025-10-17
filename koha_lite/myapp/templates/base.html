@@ -70,7 +70,8 @@
 
         <!-- Placeholder for future modules -->
         <a href="{% url 'patron_list' %}" class="{% if 'patron' in request.path %}active{% endif %}">Patron Management</a>
-        <a href="#" class="disabled text-secondary">Bibliographic & Items (Coming Soon)</a>
+        <a href="{% url 'biblio_list' %}" class="{% if 'biblios' in request.path %}active{% endif %}">Biblios</a>
+        <a href="{% url 'item_list' %}" class="{% if 'items' in request.path %}active{% endif %}">Items</a>  
         <a href="#" class="disabled text-secondary">Circulation / Loans (Coming Soon)</a>
         <a href="#" class="disabled text-secondary">Fines & Fees (Coming Soon)</a>
       </nav>

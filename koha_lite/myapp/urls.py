@@ -31,5 +31,23 @@ urlpatterns = [
     path("patrons/<int:pk>/delete/", views.PatronDelete.as_view(), name="patron_delete"),
     path("patrons/import/", views.PatronBulkImport.as_view(), name="patron_import"),
     path("patrons/template.csv", views.patron_csv_template, name="patron_csv_template"),
+    
+    #Cateloguing Module
+    # Biblio
+    path("biblios/", views.BiblioList.as_view(), name="biblio_list"),
+    path("biblios/new/", views.BiblioCreate.as_view(), name="biblio_create"),
+    path("biblios/<int:pk>/edit/", views.BiblioUpdate.as_view(), name="biblio_update"),
+    path("biblios/<int:pk>/delete/", views.BiblioDelete.as_view(), name="biblio_delete"),
+    path("biblios/import/", views.BiblioImportFormView.as_view(), name="biblio_import"),
+    path("biblios/template.csv", views.biblio_csv_template, name="biblio_csv_template"),
+
+    # Item
+    path("items/", views.ItemList.as_view(), name="item_list"),
+    path("items/new/", views.ItemCreate.as_view(), name="item_create"),
+    path("items/<int:pk>/edit/", views.ItemUpdate.as_view(), name="item_update"),
+    path("items/<int:pk>/delete/", views.ItemDelete.as_view(), name="item_delete"),
+    path("items/import/", views.ItemImportFormView.as_view(), name="item_import"),
+    path("items/template.csv", views.item_csv_template, name="item_csv_template"),
+    path("items/<int:pk>/", views.ItemDetail.as_view(), name="item_detail"),
 
 ]

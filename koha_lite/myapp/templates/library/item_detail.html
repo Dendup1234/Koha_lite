@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Item {{ object.accession_number }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Item: {{ object.accession_number }}</h2>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="{% url 'item_update' object.pk %}">Edit Item</a>
+    <a class="btn btn-outline-danger" href="{% url 'item_delete' object.pk %}">Delete Item</a>
+    <a class="btn btn-primary" href="{% url 'item_list' %}">Back to Items</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Item card -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">Item</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Accession</dt><dd class="col-sm-7">{{ object.accession_number }}</dd>
+          <dt class="col-sm-5">Barcode</dt><dd class="col-sm-7">{{ object.barcode|default:"—" }}</dd>
+          <dt class="col-sm-5">Status</dt><dd class="col-sm-7">{{ object.get_status_display }}</dd>
+          <dt class="col-sm-5">Type</dt><dd class="col-sm-7">{{ object.item_type.code }}</dd>
+          <dt class="col-sm-5">Branch</dt><dd class="col-sm-7">{{ object.branch.code }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Biblio card -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Biblio</span>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'biblio_update' object.biblio.pk %}">Edit Biblio</a>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Title</dt><dd class="col-sm-9">{{ object.biblio.title }}</dd>
+          <dt class="col-sm-3">Author</dt><dd class="col-sm-9">{{ object.biblio.author|default:"—" }}</dd>
+          <dt class="col-sm-3">ISBN</dt><dd class="col-sm-9">{{ object.biblio.isbn|default:"—" }}</dd>
+          <dt class="col-sm-3">Publisher</dt><dd class="col-sm-9">{{ object.biblio.publisher|default:"—" }}</dd>
+          <dt class="col-sm-3">Year</dt><dd class="col-sm-9">{{ object.biblio.publication_year|default:"—" }}</dd>
+        </dl>
+
+        {% if object.biblio.attributes %}
+          <hr>
+          <h6 class="mb-2">Additional Attributes</h6>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead><tr><th>Key</th><th>Value</th></tr></thead>
+              <tbody>
+                {% for key, val in object.biblio.attributes.items %}
+                  <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

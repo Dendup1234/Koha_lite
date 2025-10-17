@@ -33,3 +33,17 @@ class PatronCSVUploadForm(forms.Form):
         required=False, initial=True,
         help_text="Update rows if external_id already exists."
     )
+
+# Cateloguing Module
+class BiblioForm(forms.ModelForm):
+    class Meta:
+        model = Biblio
+        fields = ["title", "author", "isbn", "publisher", "publication_year", "attributes"]
+        widgets = {
+            "attributes": forms.Textarea(attrs={"rows": 4, "placeholder": '{"pages": 200, "language": "dz"}'}),
+        }
+
+class ItemForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = ["biblio", "accession_number", "barcode", "item_type", "branch", "status"]
