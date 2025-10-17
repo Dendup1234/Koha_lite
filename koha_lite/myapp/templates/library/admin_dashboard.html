@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Administrative Module{% endblock %}
+
+{% block content %}
+<h2>Administrative Module</h2>
+<p>Manage branches, item types, and patron categories.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+  <a href="{% url 'branch_list' %}" class="card">
+    <h3>Branches</h3>
+    <p>Create, edit, search library branches.</p>
+  </a>
+
+  <a href="{% url 'itemtype_list' %}" class="card">
+    <h3>Item Types</h3>
+    <p>Manage item-type codes and names.</p>
+  </a>
+
+  <a href="{% url 'patroncat_list' %}" class="card">
+    <h3>Patron Categories</h3>
+    <p>Student, staff, etc.</p>
+  </a>
+</div>
+
+<style>
+.card{border:1px solid #e5e7eb;border-radius:12px;padding:1rem;text-decoration:none;color:inherit;background:#fff}
+.card:hover{box-shadow:0 6px 18px rgba(0,0,0,.06)}
+</style>
+{% endblock %}

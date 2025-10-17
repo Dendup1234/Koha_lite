@@ -1,0 +1,13 @@
+<form method="get" style="margin-bottom:1rem;display:flex;gap:.5rem;">
+  <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search by code or name"
+         style="flex:1;padding:.5rem;border:1px solid #ddd;border-radius:.5rem">
+  <button class="btn">Search</button>
+  {% block extra_buttons %}{% endblock %}
+</form>
+<style>
+.btn{padding:.5rem 1rem;border:1px solid #ddd;border-radius:.5rem;background:#0d6efd;color:#fff}
+.btn:hover{opacity:.9}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #eee;padding:.6rem .4rem;text-align:left}
+.actions a{margin-right:.5rem}
+</style>

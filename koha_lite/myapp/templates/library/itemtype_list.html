@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Item Types{% endblock %}
+{% block content %}
+<h2>Item Types</h2>
+{% include "library/_list_search_toolbar.html" %}
+<div style="margin-bottom:1rem;">
+  <a href="{% url 'itemtype_create' %}" class="btn">+ New Item Type</a>
+</div>
+
+<table class="table">
+  <thead><tr><th>Code</th><th>Name</th><th></th></tr></thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.code }}</td>
+      <td>{{ r.name }}</td>
+      <td class="actions">
+        <a href="{% url 'itemtype_update' r.code %}">Edit</a>
+        <a href="{% url 'itemtype_delete' r.code %}">Delete</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3">No item types found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

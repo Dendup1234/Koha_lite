@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Delete{% endblock %}
+{% block content %}
+<h2>Delete {{ object }}</h2>
+<p>This action cannot be undone.</p>
+<form method="post">
+  {% csrf_token %}
+  <button class="btn" type="submit">Confirm Delete</button>
+  <a class="btn" href="javascript:history.back()">Cancel</a>
+</form>
+{% endblock %}
