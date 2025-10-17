@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Issuing Rules{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Issuing Rules</h2>
+  <a class="btn btn-primary" href="{% url 'rule_create' %}">+ New Rule</a>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-sm-6">
+    <input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Search by patron category or item type code">
+  </div>
+  <div class="col-auto"><button class="btn btn-primary">Search</button></div>
+</form>
+
+<table class="table table-hover">
+  <thead class="table-light">
+    <tr>
+      <th>Patron Category</th><th>Item Type</th><th>Loan Days</th><th>Daily Fine</th>
+      <th>Max Fine</th><th>Renewals</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.patron_category.code }}</td>
+        <td>{{ r.item_type.code }}</td>
+        <td>{{ r.loan_days }}</td>
+        <td>{{ r.daily_fine }}</td>
+        <td>{{ r.max_fine }}</td>
+        <td>{% if r.renewal_allowed %}Up to {{ r.max_renewals }}{% else %}Not allowed{% endif %}</td>
+        <td class="text-nowrap">
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'rule_update' r.pk %}">Edit</a>
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'rule_delete' r.pk %}">Delete</a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="text-muted">No rules yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

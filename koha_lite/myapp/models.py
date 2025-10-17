@@ -1,7 +1,8 @@
 from django.db import models
+from django.core.validators import MinValueValidator
+from django.utils import timezone
 
-
-# AAdministrative Module
+# Administrative Module
 class Branch(models.Model):
     code = models.CharField(max_length=20, unique=True,primary_key=True)   # UNIQUE as per spec
     name = models.CharField(max_length=120,null=False)
@@ -116,4 +117,65 @@ class Item(models.Model):
     def __str__(self):
         return f"{self.accession_number} — {self.biblio}"
     
+# Circulation Module
+class IssuingRule(models.Model):
+    """Policy for a PatronCategory + ItemType pair."""
+    patron_category = models.ForeignKey(
+        "myapp.Patron_Categories",
+        to_field="code",
+        db_column="patron_category",
+        on_delete=models.CASCADE,
+        related_name="issuing_rules",
+    )
+    item_type = models.ForeignKey(
+        "myapp.ItemType",
+        to_field="code",
+        db_column="item_type",
+        on_delete=models.CASCADE,
+        related_name="issuing_rules",
+    )
+    loan_days = models.PositiveIntegerField(validators=[MinValueValidator(1)], help_text="How many days per loan.")
+    daily_fine = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    max_fine = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    renewal_allowed = models.BooleanField(default=True)
+    max_renewals = models.PositiveIntegerField(default=2)
 
+    class Meta:
+        unique_together = ("patron_category", "item_type")
+        ordering = ["patron_category__code", "item_type__code"]
+        verbose_name = "issuing rule"
+        verbose_name_plural = "issuing rules"
+
+    def __str__(self):
+        return f"{self.patron_category_id} / {self.item_type_id} → {self.loan_days} days"
+
+
+class Loan(models.Model):
+    patron = models.ForeignKey("myapp.Patron", on_delete=models.PROTECT, related_name="loans")
+    item = models.ForeignKey("myapp.Item", on_delete=models.PROTECT, related_name="loans")
+    issued_at = models.DateTimeField(auto_now_add=True)
+    due_at = models.DateTimeField()
+    return_date = models.DateTimeField(null=True, blank=True)
+    renewal_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["patron", "due_at"]),
+            models.Index(fields=["item", "due_at"]),
+        ]
+        # prevent more than one ACTIVE loan for the same item
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item"],
+                condition=models.Q(return_date__isnull=True),
+                name="unique_active_loan_per_item",
+            ),
+        ]
+        ordering = ["-issued_at"]
+
+    @property
+    def is_active(self):
+        return self.return_date is None
+
+    def __str__(self):
+        return f"Loan #{self.pk} — {self.patron} → {self.item}"

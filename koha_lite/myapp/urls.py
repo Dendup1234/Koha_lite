@@ -50,4 +50,17 @@ urlpatterns = [
     path("items/template.csv", views.item_csv_template, name="item_csv_template"),
     path("items/<int:pk>/", views.ItemDetail.as_view(), name="item_detail"),
 
+    #Circulation Module
+    # Rules
+    path("rules/", views.IssuingRuleList.as_view(), name="rule_list"),
+    path("rules/new/", views.IssuingRuleCreate.as_view(), name="rule_create"),
+    path("rules/<int:pk>/edit/", views.IssuingRuleUpdate.as_view(), name="rule_update"),
+    path("rules/<int:pk>/delete/", views.IssuingRuleDelete.as_view(), name="rule_delete"),
+
+    # Circulation actions
+    path("circulation/", views.circulation_dashboard, name="circ_dashboard"),
+    path("circulation/checkout/", views.CheckoutView.as_view(), name="checkout"),
+    path("circulation/checkin/", views.CheckinView.as_view(), name="checkin"),
+    path("circulation/renew/", views.RenewView.as_view(), name="renew"),
+
 ]

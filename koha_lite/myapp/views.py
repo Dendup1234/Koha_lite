@@ -2,13 +2,15 @@ import csv
 from datetime import datetime
 from io import TextIOWrapper
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,FormView,DetailView
 from .models import *
 from .forms import *
 from django.db import models, transaction
-
+from django.contrib import messages
+from .services.circulation import checkout as svc_checkout, checkin as svc_checkin, renew as svc_renew
+from django.db.models import Q
 # --- Dashboard (Administrative module entry) ---
 def admin_dashboard(request):
     return render(request, "library/admin_dashboard.html")
@@ -546,3 +548,118 @@ class ItemDetail(DetailView):
             .get_queryset()
             .select_related("biblio", "item_type", "branch")
         )
+
+#Circulations Module
+# ---- Rules CRUD (reuse your generic form.html / confirm_delete.html) ----
+
+class IssuingRuleList(ListView):
+    model = IssuingRule
+    template_name = "library/rule_list.html"
+    context_object_name = "rows"
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related("patron_category", "item_type")
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(
+                models.Q(patron_category__code__icontains=q) |
+                models.Q(item_type__code__icontains=q)
+            )
+        return qs
+
+class IssuingRuleCreate(CreateView):
+    model = IssuingRule
+    fields = ["patron_category", "item_type", "loan_days", "daily_fine", "max_fine", "renewal_allowed", "max_renewals"]
+    template_name = "library/form.html"
+    success_url = reverse_lazy("rule_list")
+
+class IssuingRuleUpdate(UpdateView):
+    model = IssuingRule
+    fields = ["patron_category", "item_type", "loan_days", "daily_fine", "max_fine", "renewal_allowed", "max_renewals"]
+    template_name = "library/form.html"
+    success_url = reverse_lazy("rule_list")
+    pk_url_kwarg = "pk"
+
+class IssuingRuleDelete(DeleteView):
+    model = IssuingRule
+    template_name = "library/confirm_delete.html"
+    success_url = reverse_lazy("rule_list")
+    pk_url_kwarg = "pk"
+
+
+# ---- Circulation dashboard (Checkout / Check-in / Renew) ----
+
+def circulation_dashboard(request):
+    q = request.GET.get("q", "").strip()
+    filter_type = request.GET.get("filter", "all")
+
+    loans = (
+        Loan.objects
+        .select_related("patron", "item", "item__biblio")
+        .order_by("-issued_at")
+    )
+
+    if q:
+        loans = loans.filter(
+            Q(patron__external_id__icontains=q)
+            | Q(patron__first_name__icontains=q)
+            | Q(patron__last_name__icontains=q)
+            | Q(item__accession_number__icontains=q)
+            | Q(item__biblio__title__icontains=q)
+        )
+
+    if filter_type == "checkedout":
+        loans = loans.filter(return_date__isnull=True)
+    elif filter_type == "checkedin":
+        loans = loans.filter(return_date__isnull=False)
+    elif filter_type == "renewed":
+        loans = loans.filter(renewal_count__gt=0)
+
+    return render(request, "library/circulation_dashboard.html", {
+        "loans": loans[:50],  # limit display
+        "q": q,
+        "filter": filter_type,
+    })
+
+class CheckoutView(FormView):
+    template_name = "library/checkout.html"
+    form_class = CheckoutForm
+    success_url = reverse_lazy("checkout")
+
+    def form_valid(self, form):
+        patron = form.cleaned_data["patron"]
+        item = form.cleaned_data["item"]
+        try:
+            loan = svc_checkout(patron, item)
+            messages.success(self.request, f"Checked out {item.accession_number} to {patron.external_id}. Due: {loan.due_at:%Y-%m-%d %H:%M}.")
+        except Exception as e:
+            messages.error(self.request, f"Checkout failed: {e}")
+        return redirect(self.success_url)
+
+class CheckinView(FormView):
+    template_name = "library/checkin.html"
+    form_class = CheckinForm
+    success_url = reverse_lazy("checkin")
+
+    def form_valid(self, form):
+        loan = form.cleaned_data["loan"]
+        try:
+            svc_checkin(loan)
+            messages.success(self.request, f"Checked in {loan.item.accession_number} from {loan.patron.external_id}.")
+        except Exception as e:
+            messages.error(self.request, f"Check-in failed: {e}")
+        return redirect(self.success_url)
+
+class RenewView(FormView):
+    template_name = "library/renew.html"
+    form_class = RenewForm
+    success_url = reverse_lazy("renew")
+
+    def form_valid(self, form):
+        loan = form.cleaned_data["loan"]
+        try:
+            svc_renew(loan)
+            messages.success(self.request, f"Renewed. New due date: {loan.due_at:%Y-%m-%d %H:%M} (renewals: {loan.renewal_count}).")
+        except Exception as e:
+            messages.error(self.request, f"Renew failed: {e}")
+        return redirect(self.success_url)
