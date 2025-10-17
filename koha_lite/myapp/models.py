@@ -179,3 +179,48 @@ class Loan(models.Model):
 
     def __str__(self):
         return f"Loan #{self.pk} — {self.patron} → {self.item}"
+
+# Fine and payment module
+
+
+
+class Fine(models.Model):
+    OVERDUE = "OVERDUE"
+    LOST = "LOST"
+
+    patron = models.ForeignKey("myapp.Patron", on_delete=models.PROTECT, related_name="fines")
+    loan   = models.ForeignKey("myapp.Loan",   on_delete=models.PROTECT, related_name="fines")
+    item   = models.ForeignKey("myapp.Item",   on_delete=models.PROTECT, related_name="fines")
+
+    fine_type   = models.CharField(max_length=30, default=OVERDUE)
+    amount      = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["patron"]),
+            models.Index(fields=["loan"]),
+            models.Index(fields=["item"]),
+        ]
+        # One aggregated OVERDUE fine per loan (simplifies payments/audit)
+        constraints = [
+            models.UniqueConstraint(fields=["loan", "fine_type"], name="unique_overdue_fine_per_loan")
+        ]
+
+    @property
+    def status(self) -> str:
+        return "PAID" if self.paid_amount >= self.amount else "UNPAID"
+
+    def add_payment(self, delta):
+        from decimal import Decimal
+        delta = Decimal(delta)
+        if delta < 0:
+            raise ValueError("Payment cannot be negative.")
+        # cap overpayments at amount
+        self.paid_amount = min(self.amount, self.paid_amount + delta)
+        self.save(update_fields=["paid_amount", "updated_at"])
+
+    def __str__(self):
+        return f"Fine #{self.id} — {self.patron.external_id} — {self.fine_type} — {self.status}"

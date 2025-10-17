@@ -62,5 +62,10 @@ urlpatterns = [
     path("circulation/checkout/", views.CheckoutView.as_view(), name="checkout"),
     path("circulation/checkin/", views.CheckinView.as_view(), name="checkin"),
     path("circulation/renew/", views.RenewView.as_view(), name="renew"),
+    
+    #Fines Module
+    path("fines/",views.FineList.as_view(),   name="fine_list"),
+    path("fines/<int:pk>/",views.FineDetail.as_view(), name="fine_detail"),
+    path("fines/<int:pk>/pay/",views.FinePayView.as_view(), name="fine_pay"),
 
 ]

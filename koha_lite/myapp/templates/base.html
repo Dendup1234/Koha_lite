@@ -74,8 +74,7 @@
         <a href="{% url 'item_list' %}" class="{% if 'items' in request.path %}active{% endif %}">Items</a>  
         <a href="{% url 'rule_list' %}" class="{% if '/rules' in request.path %}active{% endif %}">Issuing Rules</a>
         <a href="{% url 'circ_dashboard' %}" class="{% if '/circulation' in request.path %}active{% endif %}">Circulation</a>
-
-        <a href="#" class="disabled text-secondary">Fines & Fees (Coming Soon)</a>
+        <a href="{% url 'fine_list' %}" class="{% if '/fines' in request.path %}active{% endif %}">Fines</a>
       </nav>
     </div>
 

@@ -126,3 +126,7 @@ class RenewForm(forms.Form):
 
         cleaned["loan"] = loan
         return cleaned
+
+# Fine module
+class FinePaymentForm(forms.Form):
+    amount = forms.DecimalField(min_value=0, max_digits=10, decimal_places=2, label="Payment amount")

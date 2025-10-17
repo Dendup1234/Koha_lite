@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Fine #{{ object.id }}{% endblock %}
+{% block content %}
+<h2>Fine #{{ object.id }}</h2>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Details</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Patron</dt><dd class="col-sm-8">{{ object.patron.external_id }}</dd>
+          <dt class="col-sm-4">Item</dt><dd class="col-sm-8">{{ object.item.accession_number }} — {{ object.item.biblio.title }}</dd>
+          <dt class="col-sm-4">Type</dt><dd class="col-sm-8">{{ object.fine_type }}</dd>
+          <dt class="col-sm-4">Amount</dt><dd class="col-sm-8">{{ object.amount }}</dd>
+          <dt class="col-sm-4">Paid</dt><dd class="col-sm-8">{{ object.paid_amount }}</dd>
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            {% if object.status == "PAID" %}
+              <span class="badge bg-success">PAID</span>
+            {% else %}
+              <span class="badge bg-danger">UNPAID</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Record Payment</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'fine_pay' object.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="number" step="0.01" min="0" class="form-control" name="amount" placeholder="e.g. 2.00">
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Add Payment</button>
+            <a class="btn btn-outline-secondary" href="{% url 'fine_list' %}">Back</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  <div class="mt-3">
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

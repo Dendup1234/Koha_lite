@@ -3,6 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
+from .fines import assess_or_update_overdue_fine
 from myapp.models import IssuingRule, Loan, Item, Patron
 
 def _get_rule_for(patron: Patron, item: Item) -> IssuingRule:
@@ -25,17 +26,13 @@ def checkout(patron: Patron, item: Item) -> Loan:
     if item.status != Item.Status.AVAILABLE:
         raise ValidationError(f"Item {item.accession_number} is not available (status={item.status}).")
 
-    rule = _get_rule_for(patron, item)
+    rule = _get_rule_for(patron=patron, item=item)  # your helper from earlier
     issued_at = timezone.now()
-    due_at = compute_due_date(issued_at, rule)
+    due_at = issued_at + timedelta(days=rule.loan_days)
 
-    # Create loan
     loan = Loan.objects.create(patron=patron, item=item, due_at=due_at)
-
-    # Update item status
     item.status = Item.Status.ISSUED
     item.save(update_fields=["status"])
-
     return loan
 
 @transaction.atomic
@@ -45,11 +42,12 @@ def checkin(loan: Loan):
     loan.return_date = timezone.now()
     loan.save(update_fields=["return_date"])
 
-    # mark item available again
+    # finalize the overdue fine (if any) based on actual return time
+    assess_or_update_overdue_fine(loan, final=True)
+
     item = loan.item
     item.status = Item.Status.AVAILABLE
     item.save(update_fields=["status"])
-
     return loan
 
 @transaction.atomic
@@ -57,22 +55,19 @@ def renew(loan: Loan):
     if not loan.is_active:
         raise ValidationError("Loan is not active.")
 
-    patron = loan.patron
-    item = loan.item
-    rule = _get_rule_for(patron, item)
-
+    rule = _get_rule_for(loan.patron, loan.item)
     if not rule.renewal_allowed:
         raise ValidationError("Renewals are not allowed by policy.")
     if loan.renewal_count >= rule.max_renewals:
         raise ValidationError(f"Renewal limit reached ({rule.max_renewals}).")
 
-    # extend from current due_at (common policy)
-    new_due = loan.due_at + (loan.due_at - (loan.issued_at if loan.renewal_count == 0 else loan.due_at - (loan.due_at - loan.due_at)))
-    # simpler: add loan_days again
     from datetime import timedelta
-    new_due = loan.due_at + timedelta(days=rule.loan_days)
-
-    loan.due_at = new_due
+    loan.due_at = loan.due_at + timedelta(days=rule.loan_days)
     loan.renewal_count += 1
     loan.save(update_fields=["due_at", "renewal_count"])
+
+    # If already overdue, renewing does NOT waive existing overdue — but the amount
+    # for active loan should reflect the new due date going forward:
+    assess_or_update_overdue_fine(loan, final=False)
     return loan
+

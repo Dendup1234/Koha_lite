@@ -2,8 +2,8 @@ import csv
 from datetime import datetime
 from io import TextIOWrapper
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView,FormView,DetailView
 from .models import *
 from .forms import *
@@ -11,6 +11,7 @@ from django.db import models, transaction
 from django.contrib import messages
 from .services.circulation import checkout as svc_checkout, checkin as svc_checkin, renew as svc_renew
 from django.db.models import Q
+
 # --- Dashboard (Administrative module entry) ---
 def admin_dashboard(request):
     return render(request, "library/admin_dashboard.html")
@@ -663,3 +664,55 @@ class RenewView(FormView):
         except Exception as e:
             messages.error(self.request, f"Renew failed: {e}")
         return redirect(self.success_url)
+
+# Fines Module
+class FineList(ListView):
+    model = Fine
+    template_name = "library/fine_list.html"
+    context_object_name = "rows"
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related("patron","loan","item","item__biblio")
+        q = self.request.GET.get("q", "").strip()
+        status = self.request.GET.get("status", "all")
+        if q:
+            qs = qs.filter(
+                Q(patron__external_id__icontains=q) |
+                Q(item__accession_number__icontains=q) |
+                Q(item__biblio__title__icontains=q)
+            )
+        if status == "paid":
+            qs = [f for f in qs if f.status == "PAID"]
+        elif status == "unpaid":
+            qs = [f for f in qs if f.status == "UNPAID"]
+        return qs
+
+class FineDetail(DetailView):
+    model = Fine
+    template_name = "library/fine_detail.html"
+    pk_url_kwarg = "pk"
+
+class FinePayView(FormView):
+    template_name = "library/fine_pay.html"
+    form_class = FinePaymentForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.fine = get_object_or_404(Fine, pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["fine"] = self.fine
+        return ctx
+
+    def form_valid(self, form):
+        amt = form.cleaned_data["amount"]
+        try:
+            self.fine.add_payment(amt)
+            if self.fine.status == "PAID":
+                messages.success(self.request, f"Payment recorded. Fine is now PAID.")
+            else:
+                messages.success(self.request, f"Payment recorded. Remaining: {self.fine.amount - self.fine.paid_amount:.2f}")
+        except Exception as e:
+            messages.error(self.request, f"Payment failed: {e}")
+        return redirect(reverse("fine_detail", args=[self.fine.pk]))
