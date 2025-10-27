@@ -1,0 +1,35 @@
+external_id,first_name,last_name,email,category_code,expires_at,is_active
+02220137,Cheda,Zangmo,2220137.cst@rub.edu.bt,STU,2026-12-31,false
+02220138,Choki,Wangmo,2220138.cst@rub.edu.bt,STU,2026-12-31,true
+02220140,Dago,Tshering,2220140.cst@rub.edu.bt,STU,2026-12-31,true
+02220141,Damchey,Norbu,2220141.cst@rub.edu.bt,STU,2026-12-31,false
+02220143,Dendup,Tshering,2220143.cst@rub.edu.bt,STU,2026-12-31,true
+02220145,Dorji,Wangmo,2220145.cst@rub.edu.bt,STU,2026-12-31,false
+02220146,Harka,Bdr Rai,2220146.cst@rub.edu.bt,STU,2026-12-31,false
+02220148,Kamal,Kharel,2220148.cst@rub.edu.bt,STU,2026-12-31,true
+02220149,Karan,Powdyal,2220149.cst@rub.edu.bt,STU,2026-12-31,true
+02220151,Karma,Thapkey,2220151.cst@rub.edu.bt,STU,2026-12-31,true
+02220153,Karma,Tashi Phuntshok,2220153.cst@rub.edu.bt,STU,2026-12-31,true
+02220155,Laki,Kishor Subba,2220155.cst@rub.edu.bt,STU,2026-12-31,true
+02220158,Nyingye,Metog Dorji,2220158.cst@rub.edu.bt,STU,2026-12-31,true
+02220159,Pema,Cheki,2220159.cst@rub.edu.bt,STU,2026-12-31,false
+02220160,Pema,Namgay,2220160.cst@rub.edu.bt,STU,2026-12-31,true
+02220162,Phuntsho,Wangdi,2220162.cst@rub.edu.bt,STU,2026-12-31,true
+02220163,Pradeep,Pokhrel,2220163.cst@rub.edu.bt,STU,2026-12-31,false
+02220164,Robin,Dungyel,2220164.cst@rub.edu.bt,STU,2026-12-31,true
+02220165,Sidartha,Subba,2220165.cst@rub.edu.bt,STU,2026-12-31,false
+02220167,Sonam,Wangchuk,2220167.cst@rub.edu.bt,STU,2026-12-31,true
+02220169,Sonam,Dechen Lhaki,2220169.cst@rub.edu.bt,STU,2026-12-31,true
+02220171,Tanish,Sharma,2220171.cst@rub.edu.bt,STU,2026-12-31,false
+02220172,Tashi,Dolkar,2220172.cst@rub.edu.bt,STU,2026-12-31,true
+02220173,Tashi,Wangchuk,2220173.cst@rub.edu.bt,STU,2026-12-31,false
+02220176,Vivek,Monger,2220176.cst@rub.edu.bt,STU,2026-12-31,true
+02220177,Yeshey,Tenzin,2220177.cst@rub.edu.bt,STU,2026-12-31,true
+02210194,Dawa,Tshering,2210194.cst@rub.edu.bt,STU,2026-12-31,false
+02210197,Dorji,Om,2210197.cst@rub.edu.bt,STU,2026-12-31,true
+02210198,Dorji,Wangchuk,2210198.cst@rub.edu.bt,STU,2026-12-31,true
+02210199,Jigme,Choda,2210199.cst@rub.edu.bt,STU,2026-12-31,true
+02210205,Kuenzang,Tobgay,2210205.cst@rub.edu.bt,STU,2026-12-31,false
+02210236,Tshewang,Dendup,2210236.cst@rub.edu.bt,STU,2026-12-31,true
+02200158,Passang,Dorji,2200158.cst@rub.edu.bt,STU,2026-12-31,false
+
